@@ -26,6 +26,21 @@ def read_file(filepath: str) -> str:
         return f"Error: The file '{filepath}' was not found."
     except Exception as e:
         return f"An unexpected error occurred while reading the file: {e}"
-
+    
 def write_file(filepath: str, content: str) -> str:
-    return "Error: write_file tool is not yet implemented."
+    """Writes content to a file, asking for user confirmation first."""
+    try:
+        print(f"ATTENTION: You are about to write the following content to '{filepath}':")
+        print("-" * 20)
+        print(content)
+        print("-" * 20)
+        
+        confirmation = input("Do you want to proceed? (y/n): ")
+        if confirmation.lower() != 'y':
+            return "Operation cancelled by user."
+            
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Successfully wrote content to '{filepath}'."
+    except Exception as e:
+        return f"An unexpected error occurred while writing to the file: {e}"
