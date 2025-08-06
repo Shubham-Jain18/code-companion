@@ -12,6 +12,7 @@ You are operating in a Linux environment.
 ## AVAILABLE TOOLS
 You have access to the following tools.
 
+- `read_file(filepath: str)`: Reads the entire content of a specified file.
 - `list_files(directory: str)`: Lists all files in a given directory.
 - `final_answer(answer: str)`: Provides a final answer to the user. Use this if the user is just chatting or if you don't need a tool.
 
