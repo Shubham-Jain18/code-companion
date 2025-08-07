@@ -1,4 +1,33 @@
 import os
+from googleapiclient.discovery import build
+from dotenv import load_dotenv
+
+def search_web(query: str) -> str:
+    """Searches a curated list of developer websites using Google Programmable Search Engine."""
+    try:
+        load_dotenv()
+        api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+        search_engine_id = os.getenv("SEARCH_ENGINE_ID")
+
+        if not api_key or not search_engine_id:
+            return "Error: Google Search API key or Search Engine ID is not configured in the .env file."
+
+        service = build("customsearch", "v1", developerKey=api_key)
+        res = service.cse().list(q=query, cx=search_engine_id, num=5).execute()
+
+        if 'items' not in res:
+            return "No results found."
+
+        # Format the results into a readable string
+        formatted_results = ""
+        for item in res['items']:
+            formatted_results += f"Title: {item.get('title')}\n"
+            formatted_results += f"Link: {item.get('link')}\n"
+            formatted_results += f"Snippet: {item.get('snippet')}\n\n"
+        return formatted_results
+
+    except Exception as e:
+        return f"An unexpected error occurred during the web search: {e}"
 
 def list_files(directory: str = '.') -> str:
     """Lists all files and directories in a given directory."""

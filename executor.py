@@ -8,9 +8,9 @@ class Executor:
     def __init__(self):
         # A mapping from tool names to the actual Python functions
         self.tool_map = {
+            "search_web": tools.search_web,
             "list_files": tools.list_files,
             "final_answer": tools.final_answer,
-            # Add future tools here
             "read_file": tools.read_file,
             "write_file": tools.write_file,
         }
