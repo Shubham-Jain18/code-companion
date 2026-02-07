@@ -16,7 +16,7 @@ class Planner:
             raise ValueError("GOOGLE_API_KEY not found in .env file")
         
         genai.configure(api_key=api_key) # type: ignore
-        self.model = genai.GenerativeModel('gemini-2.0-flash') # type: ignore
+        self.model = genai.GenerativeModel('gemini-3-pro-preview') # type: ignore
 
     def generate_plan(self, history: list, user_request: str) -> dict:
         """
