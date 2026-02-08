@@ -1,79 +1,115 @@
 from planner import Planner
 from executor import Executor
 from state_manager import StateManager
+from context.context_manager import ContextManager
+
 
 def main():
-    """The main orchestrator loop for the AI Code Companion."""
-    
-    # Instantiate our core components
-    planner = Planner()
-    executor = Executor()
-    state_manager = StateManager() # Use the new state manager
+    """
+    The main orchestrator loop for the AI Code Companion.
+    Refactored to use a ReAct (Reason-Act-Observe) loop.
+    """
 
-    # Create a new session for this run
+    state_manager = StateManager()
+    context_manager = ContextManager()
+    planner = Planner(context_manager=context_manager)
+    executor = Executor()
+
     session_id = state_manager.create_new_session()
 
     print("="*50)
-    print("Welcome to your AI Code Companion!")
+    print("AI Code Companion - ReAct Mode")
     print(f"Session ID: {session_id}")
-    print("Type 'exit' to end the session.")
+    print("Type 'exit' to end.")
     print("="*50)
 
     while True:
         user_request = input("You: ")
         if user_request.lower() == 'exit':
-            print("Assistant: Goodbye!")
+            print("Assistant: Goodbye.")
             break
 
-        # Save user message to persistent history
-        state_manager.add_message(session_id=session_id, role="user", content=user_request)
-        
-        # Get the up-to-date history for the planner
-        history = state_manager.get_session_history(session_id)
+        # Save user message
+        state_manager.add_message(
+            session_id=session_id, role="user", content=user_request)
 
-        # 1. Planning Phase
-        plan_data = planner.generate_plan(history, user_request)
-        preamble = plan_data.get("preamble")
-        plan = plan_data.get("plan", [])
+        step_count = 0
+        max_steps = 15  # Safety limit to prevent infinite loops
 
-        if preamble:
-            print(f"Assistant: {preamble}")
-            # Save the preamble to history
-            state_manager.add_message(session_id=session_id, role="assistant", content=preamble)
+        # --- AGENT LOOP ---
+        while step_count < max_steps:
+            # 1. Fetch History
+            history = state_manager.get_session_history(session_id)
 
-        if not plan:
-            print("Assistant: I couldn't create a plan for that. Please try rephrasing.")
-            state_manager.add_message(session_id=session_id, role="assistant", content="I couldn't create a plan for that.")
-            continue
-        
-        # 2. Display Plan and Execute
-        print("\n--- EXECUTING PLAN ---")
-        for i, step in enumerate(plan):
-            print(f"Executing Step {i+1}: {step.get('description')}")
-            
-            tool_to_use = step.get("tool_to_use")
+            # 2. Plan (Dynamic: Based on latest history)
+            plan_data = planner.generate_plan(history, user_request)
+            preamble = plan_data.get("preamble")
+            plan = plan_data.get("plan", [])
+
+            # Display agent thought process (optional, good for debugging/transparency)
+            if preamble and step_count == 0:
+                print(f"Assistant: {preamble}")
+                # We don't save every preamble to history to save context tokens,
+                # but you can if you want conversational continuity.
+                state_manager.add_message(
+                    session_id=session_id, role="assistant", content=preamble)
+
+            if not plan:
+                print("Assistant: I couldn't create a plan. Ending turn.")
+                state_manager.add_message(
+                    session_id=session_id, role="assistant", content="I couldn't create a plan.")
+                break
+
+            # 3. Execute ONLY the first step (ReAct pattern)
+            # Even if the planner returned 5 steps, we only do the first one
+            # to ensure we observe the result before proceeding.
+            current_step = plan[0]
+            tool_to_use = current_step.get("tool_to_use")
+            description = current_step.get("description")
+
+            print(f"\n[Step {step_count + 1}] Thought: {description}")
+            state_manager.add_message(
+                session_id=session_id, role="assistant", content=description)
+
+            # 4. Safety Check (Write File)
             if tool_to_use == "write_file":
-                filepath = step.get("parameters", {}).get("filepath")
-                print("-" * 20)
-                print(f"ATTENTION: The agent wants to write to the file '{filepath}'.")
-                print("-" * 20)
-                confirmation = input("Do you want to allow this action? (y/n): ")
+                filepath = current_step.get("parameters", {}).get("filepath")
+                print(f"ATTENTION: Writing to '{filepath}'.")
+                confirmation = input("Allow? (y/n): ")
                 if confirmation.lower() != 'y':
-                    observation = "Action cancelled by user."
-                    print(f"Observation: {observation}\n")
-                    state_manager.add_message(session_id=session_id, role="observation", tool_used="write_file", content=observation)
+                    observation = "User denied permission to write file."
+                    print(f"Observation: {observation}")
+                    state_manager.add_message(
+                        session_id=session_id, role="observation", tool_used="write_file", content=observation)
+                    step_count += 1
                     continue
-            
-            observation = executor.execute_step(step)
-            
-            if tool_to_use == "final_answer":
-                 print(f"Assistant: {observation}\n")
-                 state_manager.add_message(session_id=session_id, role="assistant", content=observation)
-            else:
-                print(f"Observation: {observation}\n")
-                state_manager.add_message(session_id=session_id, role="observation", tool_used=tool_to_use, content=observation)
 
-        print("--- PLAN COMPLETE ---\n")
+            # 5. Execute Tool
+            observation = executor.execute_step(current_step)
+
+            # 6. Handle Final Answer
+            if tool_to_use == "final_answer":
+                print(f"\nAssistant: {observation}\n")
+                state_manager.add_message(
+                    session_id=session_id, role="assistant", content=observation)
+                break  # Exit the Agent Loop, wait for new user input
+
+            # 7. Handle Standard Observation
+            else:
+                print(f"Observation: {observation}")
+                # Save the observation so the Planner sees it in the next iteration
+                state_manager.add_message(
+                    session_id=session_id,
+                    role="observation",
+                    tool_used=tool_to_use,
+                    content=str(observation)
+                )
+
+            step_count += 1
+
+        if step_count >= max_steps:
+            print("Error: Maximum steps reached. The agent may be stuck in a loop.")
+
 
 if __name__ == "__main__":
     main()

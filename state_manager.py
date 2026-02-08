@@ -2,11 +2,13 @@ import sqlite3
 import json
 from typing import Optional
 
+
 class StateManager:
     """
     Manages the agent's state, including session and message history,
     using an SQLite database.
     """
+
     def __init__(self, db_path='memory.db'):
         self.db_path = db_path
         self._setup_database()
@@ -59,7 +61,7 @@ class StateManager:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO messages (session_id, role, content, tool_used) VALUES (?, ?, ?, ?)",
-            (session_id, role, content, tool_used)
+            (session_id, role, str(content), tool_used)
         )
         conn.commit()
         conn.close()
