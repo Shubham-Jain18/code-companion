@@ -13,7 +13,7 @@ def main():
     state_manager = StateManager()
     context_manager = ContextManager()
     planner = Planner(context_manager=context_manager)
-    executor = Executor()
+    executor = Executor(context_manager=context_manager)
 
     session_id = state_manager.create_new_session()
 

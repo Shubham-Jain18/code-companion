@@ -73,3 +73,37 @@ def write_file(filepath: str, content: str) -> str:
         return f"Successfully wrote content to '{filepath}'."
     except Exception as e:
         return f"An unexpected error occurred while writing to the file: {e}"
+    
+def search_code(query: str, directory: str = ".") -> str:
+    """
+    Recursively searches for a string in all files within a directory.
+    Returns a formatted string of matches (File:LineNumber:Content).
+    """
+    matches = []
+    try:
+        for root, _, files in os.walk(directory):
+            if ".git" in root or ".venv" in root or "__pycache__" in root:
+                continue # Skip common junk directories
+            
+            for file in files:
+                if file.endswith(('.pyc', '.db', '.png', '.jpg')): 
+                    continue # Skip binary/irrelevant files
+                
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                        lines = f.readlines()
+                        for i, line in enumerate(lines):
+                            if query in line:
+                                # Clean up whitespace for display
+                                matches.append(f"{filepath}:{i+1}: {line.strip()}")
+                except Exception:
+                    continue # Skip files we can't read
+        
+        if not matches:
+            return f"No matches found for '{query}'."
+        
+        # Return top 50 matches to save tokens
+        return "\n".join(matches[:50])
+    except Exception as e:
+        return f"Error searching code: {e}"

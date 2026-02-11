@@ -60,7 +60,6 @@ class Planner:
             context_summary = self.context_manager.get_context()
 
         # 3. Format the Prompt
-        # Ensure your PLANNER_PROMPT in prompts.py has the {context_summary} placeholder!
         prompt = PLANNER_PROMPT.format(
             history=formatted_history,
             user_request=user_request,

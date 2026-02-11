@@ -50,7 +50,7 @@ class StateManager:
         session_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        # Add a check to ensure session_id is not None, which is good practice.
+        # Add a check to ensure session_id is not None.
         if session_id is None:
             raise Exception("Failed to create a new session.")
         return session_id
