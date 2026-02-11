@@ -107,3 +107,34 @@ def search_code(query: str, directory: str = ".") -> str:
         return "\n".join(matches[:50])
     except Exception as e:
         return f"Error searching code: {e}"
+    
+def edit_file(filepath: str, target_snippet: str, new_snippet: str) -> str:
+    """
+    Replaces a specific target snippet with a new snippet in the given file.
+    Enforces uniqueness: The target snippet must occur exactly once in the file.
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Check occurrence count
+        count = content.count(target_snippet)
+        
+        if count == 0:
+            return "Error: Target snippet not found in file. Please read the file again to ensure you have the exact text."
+        if count > 1:
+            return f"Error: Target snippet is ambiguous (found {count} times). Provide a larger snippet to ensure uniqueness."
+
+        # Perform replacement
+        new_content = content.replace(target_snippet, new_snippet)
+        
+        # Write back
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+            
+        return "Successfully edited the file."
+        
+    except FileNotFoundError:
+        return f"Error: File '{filepath}' not found."
+    except Exception as e:
+        return f"Error editing file: {e}"

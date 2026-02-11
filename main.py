@@ -71,16 +71,15 @@ def main():
             state_manager.add_message(
                 session_id=session_id, role="assistant", content=description)
 
-            # 4. Safety Check (Write File)
-            if tool_to_use == "write_file":
+            # 4. Safety Check for Write AND Edit
+            if tool_to_use in ["write_file", "edit_file"]:
                 filepath = current_step.get("parameters", {}).get("filepath")
-                print(f"ATTENTION: Writing to '{filepath}'.")
+                print(f"ATTENTION: Modifying file '{filepath}' via {tool_to_use}.")
                 confirmation = input("Allow? (y/n): ")
                 if confirmation.lower() != 'y':
-                    observation = "User denied permission to write file."
+                    observation = "User denied permission."
                     print(f"Observation: {observation}")
-                    state_manager.add_message(
-                        session_id=session_id, role="observation", tool_used="write_file", content=observation)
+                    state_manager.add_message(session_id=session_id, role="observation", tool_used=tool_to_use, content=observation)
                     step_count += 1
                     continue
 

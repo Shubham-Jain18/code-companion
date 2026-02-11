@@ -15,6 +15,7 @@ class Executor:
             "list_files": tools.list_files,
             "read_file": tools.read_file,
             "write_file": tools.write_file,
+            "edit_file": tools.edit_file,
             "search_code": tools.search_code,
             "final_answer": tools.final_answer,
         }
